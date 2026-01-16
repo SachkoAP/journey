@@ -1,22 +1,71 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>My Mini App</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-</head>
-<body>
-  <h1>Привет из Telegram Mini App 🚀</h1>
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-  <button onclick="showUser()">Показать пользователя</button>
+const mockThemes = ["Мысли", "Заметки", "Идеи", "Путешествия", "Философия"];
 
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
+const mockArticles = [
+  {
+    id: 1,
+    title: "Первый поток сознания",
+    date: "15.01.2026",
+    text: "Сегодня я задумался о том, как мысли переплетаются между собой...",
+    image: null,
+    reactions: { "🔥": 3, "❤️": 5 },
+  },
+];
 
-    function showUser() {
-      alert(JSON.stringify(tg.initDataUnsafe.user, null, 2));
+export default function LifeJournalApp() {
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    tg?.ready();
+
+    const username = tg?.initDataUnsafe?.user?.username;
+    if (username === "YOUR_USERNAME") {
+      setIsOwner(true);
     }
-  </script>
-</body>
-</html>
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-neutral-100 p-4">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-bold">Спагетти мозга</h1>
+        {isOwner && <Button>Добавить статью</Button>}
+      </div>
+
+      {/* Themes carousel */}
+      <div className="flex gap-3 overflow-x-auto pb-3 mb-4">
+        {mockThemes.map((theme) => (
+          <Card key={theme} className="min-w-[80px] h-[80px] flex items-center justify-center text-center font-medium">
+            {theme}
+          </Card>
+        ))}
+        <Card className="min-w-[80px] h-[80px] flex items-center justify-center font-bold">Еще</Card>
+      </div>
+
+      {/* Articles */}
+      <div className="flex flex-col gap-4">
+        {mockArticles.map((article) => (
+          <Card key={article.id} className="rounded-2xl">
+            <CardContent className="p-4">
+              {article.image && (
+                <img src={article.image} className="rounded-xl mb-3" />
+              )}
+              <h2 className="text-lg font-semibold">{article.title}</h2>
+              <p className="text-sm text-neutral-500 mb-2">{article.date}</p>
+              <p className="mb-3 text-neutral-800">{article.text}</p>
+              <div className="flex gap-3 text-lg">
+                {Object.entries(article.reactions).map(([emoji, count]) => (
+                  <span key={emoji}>{emoji} {count}</span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
