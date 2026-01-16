@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>My Mini App</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <h1>Привет из Telegram Mini App 🚀</h1>
+
+  <button onclick="showUser()">Показать пользователя</button>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+
+    function showUser() {
+      alert(JSON.stringify(tg.initDataUnsafe.user, null, 2));
+    }
+  </script>
+</body>
+</html>
