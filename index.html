@@ -1,71 +1,23 @@
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-
-const mockThemes = ["Мысли", "Заметки", "Идеи", "Путешествия", "Философия"];
-
-const mockArticles = [
-  {
-    id: 1,
-    title: "Первый поток сознания",
-    date: "15.01.2026",
-    text: "Сегодня я задумался о том, как мысли переплетаются между собой...",
-    image: null,
-    reactions: { "🔥": 3, "❤️": 5 },
-  },
-];
-
-export default function LifeJournalApp() {
-  const [isOwner, setIsOwner] = useState(false);
-
-  useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    tg?.ready();
-
-    const username = tg?.initDataUnsafe?.user?.username;
-    if (username === "YOUR_USERNAME") {
-      setIsOwner(true);
-    }
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-neutral-100 p-4">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold">Спагетти мозга</h1>
-        {isOwner && <Button>Добавить статью</Button>}
-      </div>
-
-      {/* Themes carousel */}
-      <div className="flex gap-3 overflow-x-auto pb-3 mb-4">
-        {mockThemes.map((theme) => (
-          <Card key={theme} className="min-w-[80px] h-[80px] flex items-center justify-center text-center font-medium">
-            {theme}
-          </Card>
-        ))}
-        <Card className="min-w-[80px] h-[80px] flex items-center justify-center font-bold">Еще</Card>
-      </div>
-
-      {/* Articles */}
-      <div className="flex flex-col gap-4">
-        {mockArticles.map((article) => (
-          <Card key={article.id} className="rounded-2xl">
-            <CardContent className="p-4">
-              {article.image && (
-                <img src={article.image} className="rounded-xl mb-3" />
-              )}
-              <h2 className="text-lg font-semibold">{article.title}</h2>
-              <p className="text-sm text-neutral-500 mb-2">{article.date}</p>
-              <p className="mb-3 text-neutral-800">{article.text}</p>
-              <div className="flex gap-3 text-lg">
-                {Object.entries(article.reactions).map(([emoji, count]) => (
-                  <span key={emoji}>{emoji} {count}</span>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Спагетти мозга</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<header class="header">
+<h1>Спагетти мозга</h1>
+<button id="addBtn" class="icon-btn hidden" onclick="location.href='add.html'">＋</button>
+</header>
+<section class="themes">
+<div class="themes-row" id="themesRow"></div>
+</section>
+<section class="articles" id="articles"></section>
+<script src="js/telegram.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
