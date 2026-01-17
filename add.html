@@ -39,6 +39,37 @@
     >
       <option value="" disabled selected>Выберите темы (можно несколько)</option>
     </select>
+    
+    <div class="file-upload-section">
+      <label for="imageUpload" class="file-upload-label">
+        <span class="upload-icon">📷</span>
+        <span>Загрузить фото</span>
+      </label>
+      <input 
+        type="file" 
+        id="imageUpload" 
+        accept="image/*" 
+        style="display: none;"
+        onchange="handleImageUpload(event)"
+      />
+      <div id="imagePreview" class="image-preview"></div>
+    </div>
+    
+    <div class="file-upload-section">
+      <label for="fileUpload" class="file-upload-label">
+        <span class="upload-icon">📎</span>
+        <span>Загрузить файлы</span>
+      </label>
+      <input 
+        type="file" 
+        id="fileUpload" 
+        multiple
+        style="display: none;"
+        onchange="handleFileUpload(event)"
+      />
+      <div id="filesList" class="files-preview"></div>
+    </div>
+    
     <button type="submit">Опубликовать</button>
   </form>
   

@@ -69,12 +69,13 @@ function initCarousel(container) {
     setActiveTheme(tiles[0], container);
   }
   
-  // Обработка прокрутки для центрирования
+  // Обработка прокрутки для центрирования с debounce
   let isScrolling = false;
-  container.addEventListener('scroll', () => {
+  let scrollTimeout = null;
+  
+  const updateActiveTile = () => {
     if (isScrolling) return;
     
-    // Находим ближайшую карточку к центру
     const containerRect = container.getBoundingClientRect();
     const centerX = containerRect.left + containerRect.width / 2;
     
@@ -92,9 +93,65 @@ function initCarousel(container) {
       }
     });
     
-    if (closestTile) {
+    if (closestTile && closestDistance < 100) {
       setActiveTheme(closestTile, container, false);
     }
+  };
+  
+  container.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      updateActiveTile();
+    }, 150);
+  });
+  
+  // Обработка окончания прокрутки (для touch устройств)
+  let touchStartX = 0;
+  let touchEndX = 0;
+  
+  container.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  });
+  
+  container.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    setTimeout(() => {
+      updateActiveTile();
+      // Автоматически центрируем ближайшую карточку
+      const containerRect = container.getBoundingClientRect();
+      const centerX = containerRect.left + containerRect.width / 2;
+      
+      let closestTile = null;
+      let closestDistance = Infinity;
+      
+      tiles.forEach(tile => {
+        const tileRect = tile.getBoundingClientRect();
+        const tileCenterX = tileRect.left + tileRect.width / 2;
+        const distance = Math.abs(centerX - tileCenterX);
+        
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestTile = tile;
+        }
+      });
+      
+      if (closestTile && closestDistance < 150) {
+        isScrolling = true;
+        const tileLeft = closestTile.offsetLeft;
+        const containerCenter = containerRect.width / 2;
+        const targetScroll = tileLeft - containerCenter + closestTile.offsetWidth / 2;
+        
+        container.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth'
+        });
+        
+        setTimeout(() => {
+          isScrolling = false;
+          setActiveTheme(closestTile, container, false);
+        }, 500);
+      }
+    }, 100);
   });
   
   // Плавная прокрутка при клике
@@ -106,11 +163,9 @@ function initCarousel(container) {
       // Прокручиваем к центру
       isScrolling = true;
       const containerRect = container.getBoundingClientRect();
-      const tileRect = tile.getBoundingClientRect();
-      const scrollLeft = container.scrollLeft;
       const tileLeft = tile.offsetLeft;
       const containerCenter = containerRect.width / 2;
-      const targetScroll = tileLeft - containerCenter + tileRect.width / 2;
+      const targetScroll = tileLeft - containerCenter + tile.offsetWidth / 2;
       
       container.scrollTo({
         left: targetScroll,
@@ -119,6 +174,7 @@ function initCarousel(container) {
       
       setTimeout(() => {
         isScrolling = false;
+        setActiveTheme(tile, container, false);
       }, 500);
     };
   });
@@ -224,7 +280,7 @@ function renderArticles(articlesToRender = articles) {
         <p>${escapeHtml(previewText)}</p>
       </div>
       <div class="article-footer">
-        <button class="read-btn" onclick="event.stopPropagation(); showFullArticle(${index})">ЧИТАТЬ</button>
+        <button class="read-btn" onclick="event.stopPropagation(); window.location.href='article.html?id=${index}'">ЧИТАТЬ</button>
       </div>
     `;
     
@@ -298,6 +354,87 @@ if (articlesWrap && articles.length > 0) {
 // Обработка формы добавления статьи
 // ============================================
 
+// Глобальные переменные для загруженных файлов
+let uploadedImage = null;
+let uploadedFiles = [];
+
+// Обработка загрузки изображения
+window.handleImageUpload = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  if (!file.type.startsWith('image/')) {
+    alert('Пожалуйста, выберите изображение');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    uploadedImage = e.target.result;
+    const preview = document.getElementById('imagePreview');
+    if (preview) {
+      preview.innerHTML = `
+        <div class="preview-item">
+          <img src="${uploadedImage}" alt="Preview" class="preview-image" />
+          <button type="button" class="remove-btn" onclick="removeImage()">×</button>
+        </div>
+      `;
+    }
+  };
+  reader.readAsDataURL(file);
+};
+
+window.removeImage = function() {
+  uploadedImage = null;
+  const preview = document.getElementById('imagePreview');
+  if (preview) preview.innerHTML = '';
+  const imageInput = document.getElementById('imageUpload');
+  if (imageInput) imageInput.value = '';
+};
+
+// Обработка загрузки файлов
+window.handleFileUpload = function(event) {
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      uploadedFiles.push({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        url: e.target.result,
+        data: e.target.result
+      });
+      
+      updateFilesList();
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+function updateFilesList() {
+  const filesList = document.getElementById('filesList');
+  if (!filesList) return;
+  
+  if (uploadedFiles.length === 0) {
+    filesList.innerHTML = '';
+    return;
+  }
+  
+  filesList.innerHTML = uploadedFiles.map((file, index) => `
+    <div class="preview-file-item">
+      <span class="file-icon">📎</span>
+      <span class="file-name">${escapeHtml(file.name)}</span>
+      <button type="button" class="remove-btn" onclick="removeFile(${index})">×</button>
+    </div>
+  `).join('');
+}
+
+window.removeFile = function(index) {
+  uploadedFiles.splice(index, 1);
+  updateFilesList();
+};
+
 if (addForm) {
   // Заполнение селекта тем
   if (themeSelect) {
@@ -347,8 +484,13 @@ if (addForm) {
         year: 'numeric'
       }),
       themes: selectedThemes,
-      image: null
+      image: uploadedImage,
+      files: uploadedFiles.length > 0 ? uploadedFiles : null
     };
+    
+    // Очистка загруженных файлов
+    uploadedImage = null;
+    uploadedFiles = [];
     
     // Добавление в массив
     articles.unshift(newArticle);
