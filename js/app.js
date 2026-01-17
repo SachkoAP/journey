@@ -8,10 +8,11 @@ const themesGrid = document.getElementById("themesGrid");
 const addForm = document.getElementById("addForm");
 const themeSelect = document.getElementById("themeSelect");
 
-// Инициализация тем
+// Инициализация тем с каруселью
 if (themesRow) {
   renderThemes(themesRow, true);
   
+  // Добавляем кнопку "Ещё"
   const more = document.createElement("div");
   more.className = "theme-tile";
   more.innerText = "Ещё";
@@ -22,6 +23,9 @@ if (themesRow) {
     }, 150);
   };
   themesRow.appendChild(more);
+  
+  // Инициализация карусели
+  initCarousel(themesRow);
 }
 
 // Инициализация сетки тем на странице themes.html
@@ -35,6 +39,7 @@ function renderThemes(container, isRow = true) {
     const d = document.createElement("div");
     d.className = "theme-tile";
     d.innerText = t;
+    d.dataset.theme = t;
     d.style.animationDelay = `${index * 0.05}s`;
     d.style.animation = "fadeIn 0.4s ease-out both";
     
@@ -43,12 +48,106 @@ function renderThemes(container, isRow = true) {
       d.style.transform = "scale(0.95)";
       setTimeout(() => {
         d.style.transform = "";
+        // Активируем карточку в карусели
+        if (isRow && container === themesRow) {
+          setActiveTheme(d, container);
+        }
         filterByTheme(t);
       }, 150);
     };
     
     container.appendChild(d);
   });
+}
+
+// Инициализация карусели с liquid glass эффектом
+function initCarousel(container) {
+  const tiles = container.querySelectorAll('.theme-tile');
+  
+  // Устанавливаем первую карточку как активную
+  if (tiles.length > 0) {
+    setActiveTheme(tiles[0], container);
+  }
+  
+  // Обработка прокрутки для центрирования
+  let isScrolling = false;
+  container.addEventListener('scroll', () => {
+    if (isScrolling) return;
+    
+    // Находим ближайшую карточку к центру
+    const containerRect = container.getBoundingClientRect();
+    const centerX = containerRect.left + containerRect.width / 2;
+    
+    let closestTile = null;
+    let closestDistance = Infinity;
+    
+    tiles.forEach(tile => {
+      const tileRect = tile.getBoundingClientRect();
+      const tileCenterX = tileRect.left + tileRect.width / 2;
+      const distance = Math.abs(centerX - tileCenterX);
+      
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestTile = tile;
+      }
+    });
+    
+    if (closestTile) {
+      setActiveTheme(closestTile, container, false);
+    }
+  });
+  
+  // Плавная прокрутка при клике
+  tiles.forEach(tile => {
+    const originalClick = tile.onclick;
+    tile.onclick = (e) => {
+      if (originalClick) originalClick.call(tile, e);
+      
+      // Прокручиваем к центру
+      isScrolling = true;
+      const containerRect = container.getBoundingClientRect();
+      const tileRect = tile.getBoundingClientRect();
+      const scrollLeft = container.scrollLeft;
+      const tileLeft = tile.offsetLeft;
+      const containerCenter = containerRect.width / 2;
+      const targetScroll = tileLeft - containerCenter + tileRect.width / 2;
+      
+      container.scrollTo({
+        left: targetScroll,
+        behavior: 'smooth'
+      });
+      
+      setTimeout(() => {
+        isScrolling = false;
+      }, 500);
+    };
+  });
+}
+
+// Установка активной темы
+function setActiveTheme(tile, container, scrollToCenter = true) {
+  const tiles = container.querySelectorAll('.theme-tile');
+  
+  // Убираем активный класс со всех карточек
+  tiles.forEach(t => t.classList.remove('active'));
+  
+  // Добавляем активный класс к выбранной
+  tile.classList.add('active');
+  
+  // Прокручиваем к центру, если нужно
+  if (scrollToCenter) {
+    const containerRect = container.getBoundingClientRect();
+    const tileRect = tile.getBoundingClientRect();
+    const scrollLeft = container.scrollLeft;
+    const tileLeft = tile.offsetLeft;
+    const containerCenter = containerRect.width / 2;
+    const targetScroll = tileLeft - containerCenter + tileRect.width / 2;
+    
+    container.scrollTo({
+      left: targetScroll,
+      behavior: 'smooth'
+    });
+  }
 }
 
 // Фильтрация статей по теме
@@ -80,14 +179,15 @@ function filterByTheme(theme) {
     articlesWrap.style.transform = "translateY(0)";
   }, 300);
   
-  // Обновление активного состояния тем
-  document.querySelectorAll(".theme-tile").forEach(tile => {
-    if (tile.innerText === theme) {
-      tile.classList.add("active");
-    } else {
-      tile.classList.remove("active");
-    }
-  });
+  // Обновление активного состояния тем в карусели
+  if (themesRow) {
+    const tiles = themesRow.querySelectorAll(".theme-tile");
+    tiles.forEach(tile => {
+      if (tile.dataset.theme === theme || tile.innerText === theme) {
+        setActiveTheme(tile, themesRow);
+      }
+    });
+  }
 }
 
 // Рендеринг статей
