@@ -211,48 +211,69 @@ function renderArticles(articlesToRender = articles) {
       ? a.text.substring(0, 150) + "..." 
       : a.text;
     
+    // Получаем первую тему статьи
+    const articleTheme = a.themes && a.themes.length > 0 ? a.themes[0] : 'Без темы';
+    
     d.innerHTML = `
+      <div class="article-header">
+        <div class="article-title">${escapeHtml(a.title)}</div>
+        <div class="article-theme">${escapeHtml(articleTheme)}</div>
+      </div>
       ${a.image ? `<img src="${a.image}" alt="${a.title}" loading="lazy">` : ""}
       <div class="article-body">
-        <h3>${escapeHtml(a.title)}</h3>
-        <small>${dateStr}</small>
         <p>${escapeHtml(previewText)}</p>
+      </div>
+      <div class="article-footer">
+        <button class="read-btn" onclick="event.stopPropagation(); showFullArticle(${index})">ЧИТАТЬ</button>
       </div>
     `;
     
     // Добавляем обработчик клика для расширенного просмотра
-    d.onclick = () => {
-      d.style.transform = "scale(0.98)";
-      setTimeout(() => {
-        // Здесь можно добавить модальное окно или переход на детальную страницу
-        showArticleDetails(a);
-      }, 150);
+    d.onclick = (e) => {
+      if (e.target.classList.contains('read-btn')) return;
+      showFullArticle(index);
     };
     
     articlesWrap.appendChild(d);
   });
 }
 
-// Показ деталей статьи (можно улучшить модальным окном)
-function showArticleDetails(article) {
-  // Простая реализация - можно улучшить модальным окном
-  const fullText = article.text;
-  const articleElement = event.currentTarget;
-  const pElement = articleElement.querySelector('p');
+// Показ полной статьи (объявляем глобально для onclick)
+window.showFullArticle = function(index) {
+  const article = articles[index];
+  if (!article) return;
   
-  if (pElement.innerText.includes('...')) {
-    pElement.innerText = fullText;
+  const articleElements = document.querySelectorAll('.article');
+  const articleElement = articleElements[index];
+  
+  if (!articleElement) return;
+  
+  const pElement = articleElement.querySelector('p');
+  const readBtn = articleElement.querySelector('.read-btn');
+  
+  if (!pElement) return;
+  
+  const currentText = pElement.innerText;
+  const isExpanded = !currentText.includes('...') && currentText.length > 160;
+  
+  if (!isExpanded) {
+    // Показываем полный текст
+    pElement.innerText = article.text;
+    if (readBtn) readBtn.textContent = 'СВЕРНУТЬ';
     articleElement.style.transform = "scale(1.02)";
     setTimeout(() => {
       articleElement.style.transform = "";
     }, 200);
   } else {
-    const previewText = fullText.length > 150 
-      ? fullText.substring(0, 150) + "..." 
-      : fullText;
+    // Сворачиваем текст
+    const previewText = article.text.length > 150 
+      ? article.text.substring(0, 150) + "..." 
+      : article.text;
     pElement.innerText = previewText;
+    if (readBtn) readBtn.textContent = 'ЧИТАТЬ';
   }
-}
+};
+
 
 // Экранирование HTML для безопасности
 function escapeHtml(text) {
