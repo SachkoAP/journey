@@ -60,148 +60,67 @@ function renderThemes(container, isRow = true) {
   });
 }
 
-// Инициализация карусели с liquid glass эффектом
+// Карусель тем: CSS scroll-snap + синхронизация активной карточки без второго программного скролла
 function initCarousel(container) {
-  const tiles = container.querySelectorAll('.theme-tile');
-  
-  // Устанавливаем первую карточку как активную
-  if (tiles.length > 0) {
-    setActiveTheme(tiles[0], container);
-  }
-  
-  // Обработка прокрутки для центрирования с debounce
-  let isScrolling = false;
-  let scrollTimeout = null;
-  
-  const updateActiveTile = () => {
-    if (isScrolling) return;
-    
-    const containerRect = container.getBoundingClientRect();
-    const centerX = containerRect.left + containerRect.width / 2;
-    
-    let closestTile = null;
-    let closestDistance = Infinity;
-    
-    tiles.forEach(tile => {
-      const tileRect = tile.getBoundingClientRect();
-      const tileCenterX = tileRect.left + tileRect.width / 2;
-      const distance = Math.abs(centerX - tileCenterX);
-      
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestTile = tile;
+  const getTiles = () => [...container.querySelectorAll('.theme-tile')];
+
+  const syncActiveFromViewport = () => {
+    const tiles = getTiles();
+    if (!tiles.length) return;
+
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+
+    let closest = null;
+    let closestDist = Infinity;
+
+    tiles.forEach((tile) => {
+      const tr = tile.getBoundingClientRect();
+      const tcx = tr.left + tr.width / 2;
+      const d = Math.abs(centerX - tcx);
+      if (d < closestDist) {
+        closestDist = d;
+        closest = tile;
       }
     });
-    
-    if (closestTile && closestDistance < 100) {
-      setActiveTheme(closestTile, container, false);
-    }
+
+    if (!closest) return;
+
+    const active = container.querySelector('.theme-tile.active');
+    if (active === closest) return;
+
+    tiles.forEach((t) => t.classList.remove('active'));
+    closest.classList.add('active');
   };
-  
-  container.addEventListener('scroll', () => {
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-      updateActiveTile();
-    }, 150);
-  });
-  
-  // Обработка окончания прокрутки (для touch устройств)
-  let touchStartX = 0;
-  let touchEndX = 0;
-  
-  container.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-  });
-  
-  container.addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].screenX;
-    setTimeout(() => {
-      updateActiveTile();
-      // Автоматически центрируем ближайшую карточку
-      const containerRect = container.getBoundingClientRect();
-      const centerX = containerRect.left + containerRect.width / 2;
-      
-      let closestTile = null;
-      let closestDistance = Infinity;
-      
-      tiles.forEach(tile => {
-        const tileRect = tile.getBoundingClientRect();
-        const tileCenterX = tileRect.left + tileRect.width / 2;
-        const distance = Math.abs(centerX - tileCenterX);
-        
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestTile = tile;
-        }
-      });
-      
-      if (closestTile && closestDistance < 150) {
-        isScrolling = true;
-        const tileLeft = closestTile.offsetLeft;
-        const containerCenter = containerRect.width / 2;
-        const targetScroll = tileLeft - containerCenter + closestTile.offsetWidth / 2;
-        
-        container.scrollTo({
-          left: targetScroll,
-          behavior: 'smooth'
-        });
-        
-        setTimeout(() => {
-          isScrolling = false;
-          setActiveTheme(closestTile, container, false);
-        }, 500);
-      }
-    }, 100);
-  });
-  
-  // Плавная прокрутка при клике
-  tiles.forEach(tile => {
-    const originalClick = tile.onclick;
-    tile.onclick = (e) => {
-      if (originalClick) originalClick.call(tile, e);
-      
-      // Прокручиваем к центру
-      isScrolling = true;
-      const containerRect = container.getBoundingClientRect();
-      const tileLeft = tile.offsetLeft;
-      const containerCenter = containerRect.width / 2;
-      const targetScroll = tileLeft - containerCenter + tile.offsetWidth / 2;
-      
-      container.scrollTo({
-        left: targetScroll,
-        behavior: 'smooth'
-      });
-      
-      setTimeout(() => {
-        isScrolling = false;
-        setActiveTheme(tile, container, false);
-      }, 500);
-    };
-  });
+
+  const tiles = getTiles();
+  if (tiles.length > 0) {
+    setActiveTheme(tiles[0], container, false);
+  }
+
+  let idleTimer = null;
+  const scheduleSync = () => {
+    syncActiveFromViewport();
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(syncActiveFromViewport, 120);
+  };
+
+  container.addEventListener('scroll', scheduleSync, { passive: true });
+  container.addEventListener('scrollend', syncActiveFromViewport);
 }
 
-// Установка активной темы
+// Установка активной темы (прокрутка только через scrollIntoView — совместимо со scroll-snap)
 function setActiveTheme(tile, container, scrollToCenter = true) {
   const tiles = container.querySelectorAll('.theme-tile');
-  
-  // Убираем активный класс со всех карточек
-  tiles.forEach(t => t.classList.remove('active'));
-  
-  // Добавляем активный класс к выбранной
+
+  tiles.forEach((t) => t.classList.remove('active'));
   tile.classList.add('active');
-  
-  // Прокручиваем к центру, если нужно
+
   if (scrollToCenter) {
-    const containerRect = container.getBoundingClientRect();
-    const tileRect = tile.getBoundingClientRect();
-    const scrollLeft = container.scrollLeft;
-    const tileLeft = tile.offsetLeft;
-    const containerCenter = containerRect.width / 2;
-    const targetScroll = tileLeft - containerCenter + tileRect.width / 2;
-    
-    container.scrollTo({
-      left: targetScroll,
-      behavior: 'smooth'
+    tile.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'center',
+      block: 'nearest',
     });
   }
 }
@@ -502,7 +421,9 @@ if (addForm) {
     const submitBtn = addForm.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
     submitBtn.textContent = "✓ Добавлено!";
-    submitBtn.style.background = "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+    submitBtn.style.background =
+      "linear-gradient(135deg, #c4a574 0%, #9d7f52 100%)";
+    submitBtn.style.color = "#141210";
     
     setTimeout(() => {
       // Переход на главную страницу

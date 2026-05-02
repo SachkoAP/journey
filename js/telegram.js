@@ -7,9 +7,8 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
   
-  // Настройка цветовой схемы Telegram - бирюзовый фон
-  tg.setHeaderColor('#00d4aa');
-  tg.setBackgroundColor('#00d4aa');
+  tg.setHeaderColor('#070605');
+  tg.setBackgroundColor('#070605');
   
   // Расширение на весь экран
   tg.expand();
